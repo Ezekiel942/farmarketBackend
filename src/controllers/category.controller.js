@@ -113,9 +113,9 @@ const getCategoryBySlug = async(req, res) => {
         .status(500)
         .json({
             message: 'Internal Server Error'
-        })
-    }
-}
+        });
+    };
+};
 
 
 const getCategoryById = async(req, res) => {
