@@ -3,15 +3,23 @@
   "version": "1.0.0",
   "main": "app.js",
   "scripts": {
+<<<<<<< HEAD
     "test": "jest",
     "dev": "nodemon app.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
+=======
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js ",
+    "test": "jest --runInBand --detectOpenHandles",
+    "test:watch": "jest --watchAll"
+>>>>>>> 705238b2cdfe5a74e3b5095fa3f3890905641801
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
+<<<<<<< HEAD
   "dependencies": {
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
@@ -31,5 +39,18 @@
     "nodemon": "^3.1.10",
     "prettier": "^3.6.2",
     "supertest": "^7.1.4"
+=======
+  "devDependencies": {
+    "jest": "^30.1.3",
+    "mongodb-memory-server": "^10.2.1",
+    "supertest": "^7.1.4"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "mongoose": "^8.18.1",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10"
+>>>>>>> 705238b2cdfe5a74e3b5095fa3f3890905641801
   }
 }
