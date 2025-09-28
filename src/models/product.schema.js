@@ -19,11 +19,12 @@ const productSchema = new mongoose.Schema({
     },
     category: {
         type: mongoose.Schema.Types.ObjectId, ref: 'Category',
-        required: true,
+        required: true
     },
-    //    farmer: {
-     //   type: mongoose.Schema.Types.ObjectId, ref: User
-    //},
+    /*farmer: {
+        type: mongoose.Schema.Types.ObjectId, ref: 'User',
+        required: true
+    },*/
     quantity: {
         type: Number,
         default: 0
@@ -32,17 +33,19 @@ const productSchema = new mongoose.Schema({
         type: String,
         default: 'kg'
     },
-    price: {
+    pricePerUnit: {
         type: Number,
         required: true
     },
-    images: {
-        type: [String],
-    },
+    images: [{
+        url: {type: String},
+        publicId: {type: String},
+        resourceType: {type: String}
+    }],
     status: {
         type: String,
         enum: ['is_active', 'in_active', 'sold_out'],
-        default: 'active'
+        default: 'is_active'
     }
  }, {
         timestamps: true,
@@ -58,8 +61,17 @@ const productSchema = new mongoose.Schema({
 
 
 productSchema.virtual('inStock').get(function () {
+    if (this.status === 'sold_out') {
+       return false; 
+    }
     return (this.quantity || 0) > 0;
 });
+
+productSchema.virtual('totalPrice').get(function () {
+    return (this.quantity * this.pricePerUnit);
+});
+
+
 
 const Product = mongoose.model('Product', productSchema);
 

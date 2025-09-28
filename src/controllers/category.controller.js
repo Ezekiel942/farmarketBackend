@@ -9,7 +9,7 @@ const createCategory = async(req, res) => {
         return res
         .status(400)
         .json({
-            message: 'The name of the category is required'
+            message: 'Category name required'
         })
     };
 
@@ -23,7 +23,7 @@ const createCategory = async(req, res) => {
             return res
             .status(409)
             .json({
-                message: 'Category already exists '
+                message: 'Category already exists'
             })
         };
 
@@ -35,7 +35,7 @@ const createCategory = async(req, res) => {
         return res
         .status(201)
         .json({
-            message: 'A new category has been created',
+            message: 'new category created',
             data: newCategory
         });
 
@@ -80,7 +80,7 @@ const getCategories = async(req, res) => {
      
 };
 
-
+/*
 const getCategoryBySlug = async(req, res) => {
     const { slug } = req.params;
     if (!slug) {
@@ -117,6 +117,7 @@ const getCategoryBySlug = async(req, res) => {
     };
 };
 
+*/
 
 const getCategoryById = async(req, res) => {
     const id  = req.params.id;
@@ -193,8 +194,10 @@ const updateCategory = async(req, res) => {
             });
         };
 
+        let slug;
+
         if (name) {
-            const slug = slugify(name, { lower: true, strict: true });
+            slug = slugify(name, { lower: true, strict: true });
             if (slug && slug !== category.slug) {
                 const checkCategory = await Category.findOne({ slug });
                 if (checkCategory) {
@@ -238,11 +241,58 @@ const updateCategory = async(req, res) => {
 };
 
 
+const deleteCategory = async(req, res) => {
+    const id = req.params.id;
+
+    if(!id) {
+        return res
+        .status(400)
+        .json({
+            message: 'id not provided'
+        });
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res
+        .status(400)
+        .json({
+            message: 'invalid category id'
+        });
+    };
+
+    try {
+        const deletedCategory = await Category.findByIdAndDelete(id);
+        if (!deletedCategory) {
+            return res
+            .status(404)
+            .json({
+                message: 'Category not found'
+            });
+        };
+        return res
+        .status(204)
+        .json({
+            message: 'Category deleted successfully',
+            data: deletedCategory
+        })
+
+    } catch(error) {
+        console.error('Error deleting category:', error);
+        return res
+        .status(500)
+        .json({
+            message: 'Internal Server Error'
+        });
+    };
+
+};
+
+
 
 module.exports = {
     createCategory,
     getCategories,
-    getCategoryBySlug,
     getCategoryById,
-    updateCategory
-}
+    updateCategory,
+    deleteCategory
+};
