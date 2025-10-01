@@ -128,10 +128,12 @@ const createProduct = async(req, res) => {
 const getProducts = async(req, res) => {
     try {
         const products = await Product.find().sort({ createdAt: -1 });
+        const count = products.length;
         return res
         .status(200)
         .json({
             message: 'All products retrieved successfully',
+            count: count,
             data: products
         });
 

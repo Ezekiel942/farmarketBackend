@@ -63,10 +63,12 @@ const createCategory = async(req, res) => {
 const getCategories = async(req, res) => {
     try {
         const categories = await Category.find().sort({ createdAt: -1 });
+        const count = categories.length;
         return res
         .status(200)
         .json({
             message: 'All categories retrieved successfully',
+            count: count,
             data: categories
         });
 
@@ -110,10 +112,12 @@ const getCategoryProducts = async(req, res) => {
             });
         };
         const products = await Product.find({ category: categoryId}).sort({ createdAt: -1});
+        const count = products.length;
         return res
         .status(200)
         .json({
             message: 'Products in category retrieved successfully',
+            count: count,
             data: products
         })
     } catch(error) {
@@ -129,7 +133,6 @@ const getCategoryProducts = async(req, res) => {
 };
 
 
-/*
 const getCategoryBySlug = async(req, res) => {
     const { slug } = req.params;
     if (!slug) {
@@ -166,7 +169,6 @@ const getCategoryBySlug = async(req, res) => {
     };
 };
 
-*/
 
 const getCategoryById = async(req, res) => {
     const id  = req.params.id;
