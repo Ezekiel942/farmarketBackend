@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
 const Product = require('../models/product.schema');
 const Category = require('../models/category.schema');
-const { uploadFile } = require('../utils/uploadCloudinary');
+const uploadFile = require('../utils/uploadCloudinary');
+const deleteFile = require('../utils/deleteCloudinary');
 const slugify = require('slugify');
 const path = require('path');
 const { v4: uuid4 } = require('uuid');
@@ -227,8 +228,87 @@ const getProductsById = async(req, res) => {
 };
 
 
+const deleteProduct = async(req, res) => {
+    const productId = req.params.id;
+    if (!productId) {
+        return res
+        .status(400)
+        .json({
+            message: 'id not provided'
+        });
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res
+        .status(400)
+        .json({
+            message: 'Invalid product id'
+        });
+    };
+
+    try {
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res
+            .status(404)
+            .json({
+                message: 'product not found'
+            });
+        };
+
+        const publicIds = [];
+        for (const image of product.images) {
+            if (image && image.publicId) {
+                publicIds.push(image.publicId)
+            }
+        };
+
+        if (publicIds.length) {
+            try {
+            const result = await deleteFile(publicIds);
+            console.log('Product images deleted', result)
+            
+            } catch(error) {
+            console.error('Failed to delete product images', error)
+            return res
+            .status(500)
+            .json({
+                message: 'Failed to delete product images, product not deleted'
+            });
+        }
+        };
+
+        const deletedProduct = await Product.findByIdAndDelete(productId);
+        if(!deletedProduct) {
+            return res
+            .status(404)
+            .json({
+                message: 'product not found'
+            });
+        };
+        
+        return res
+        .status(200)
+        .json({
+            message: 'Product deleted successfully',
+            data: deletedProduct
+        });
+
+    } catch(error) {
+        console.error(error)
+        return res
+        .status(500)
+        .json({
+            message: 'Internal Server Error'
+        });
+    };
+};
+
+
+
 module.exports = {
     createProduct,
     getProducts,
+    deleteProduct,
     getProductsById
 }

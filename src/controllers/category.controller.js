@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Category = require('../models/category.schema');
+const Product = require('../models/product.schema');
 const slugify = require('slugify');
 
 
@@ -79,6 +80,54 @@ const getCategories = async(req, res) => {
     };
      
 };
+
+
+const getCategoryProducts = async(req, res) => {
+    const categoryId = req.params.id;
+    if (!categoryId) {
+        return res
+        .status(400)
+        .json({
+            message: 'id not provided'
+        });
+    };
+
+    if(!mongoose.Types.ObjectId.isValid(categoryId)) {
+        return res
+        .status(400)
+        .json({
+            message: 'Invalid category id'
+        });
+    };
+
+    try {
+        const category = await Category.findById(categoryId);
+        if(!category) {
+            return res
+            .status(404)
+            .json({
+                message: 'Category not found'
+            });
+        };
+        const products = await Product.find({ category: categoryId}).sort({ createdAt: -1});
+        return res
+        .status(200)
+        .json({
+            message: 'Products in category retrieved successfully',
+            data: products
+        })
+    } catch(error) {
+        console.error(error);
+        return res
+        .status(500)
+        .json({
+            message: 'Internal Server Error'
+        });
+    };
+    
+
+};
+
 
 /*
 const getCategoryBySlug = async(req, res) => {
@@ -270,7 +319,7 @@ const deleteCategory = async(req, res) => {
             });
         };
         return res
-        .status(204)
+        .status(200)
         .json({
             message: 'Category deleted successfully',
             data: deletedCategory
@@ -292,6 +341,7 @@ const deleteCategory = async(req, res) => {
 module.exports = {
     createCategory,
     getCategories,
+    getCategoryProducts,
     getCategoryById,
     updateCategory,
     deleteCategory

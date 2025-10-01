@@ -40,7 +40,7 @@ const productSchema = new mongoose.Schema({
     images: [{
         url: {type: String},
         publicId: {type: String},
-        resourceType: {type: String}
+        resourceType: {type: String},
     }],
     status: {
         type: String,

@@ -1,5 +1,7 @@
 const cloudinary = require('../config/cloudinary');
 
+
+
 const uploadFile = (buffer, publicId, folder, resource_type='auto') => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream({
@@ -23,4 +25,7 @@ const uploadFile = (buffer, publicId, folder, resource_type='auto') => {
 };
 
 
-module.exports =  { uploadFile };
+
+
+
+module.exports =  uploadFile;
