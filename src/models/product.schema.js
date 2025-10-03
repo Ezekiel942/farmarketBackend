@@ -25,6 +25,10 @@ const productSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, ref: 'User',
         required: true
     },*/
+    farmLocation: {
+        type: String,
+        required: true
+    },
     quantity: {
         type: Number,
         default: 0
@@ -36,6 +40,11 @@ const productSchema = new mongoose.Schema({
     pricePerUnit: {
         type: Number,
         required: true
+    },
+    minimumOrderQuantity: {
+        value: { type: Number, default: 1, min: 0 },
+        unit: { type: String, trim: true },
+        enabled: { type: Boolean, default: false }
     },
     images: [{
         url: {type: String},

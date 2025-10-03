@@ -11,7 +11,18 @@ require('dotenv').config();
 
 
 const createProduct = async(req, res) => {
-    const { name, description, category, quantity, unit, pricePerUnit, status } = req.body;
+    const {
+        name,
+        description,
+        farmLocation,
+        category,
+        quantity,
+        unit,
+        pricePerUnit,
+        minimumOrderQuantity,
+        status
+    } = req.body;
+
     const files = req.files || [];
     const folder = process.env.CLOUDINARY_FOLDER;
     
@@ -22,6 +33,9 @@ const createProduct = async(req, res) => {
     if (!description) {
         return res.status(400).json({ message: 'Product description is required' });
     };  
+    if (!farmLocation) {
+        return res.status(400).json({ message: 'Farm location is required' });
+    };
     if (!category) {
         return res.status(400).json({ message: 'Product category is required' });
     };
@@ -37,6 +51,44 @@ const createProduct = async(req, res) => {
     if (pricePerUnit == null || isNaN(Number(pricePerUnit))) {
         return res.status(400).json({ message: 'Price per unit is required and must be a number' });
     };
+
+    let moq = {
+        value: 1,
+        unit: unit,
+        enabled: false
+    }
+
+    if (typeof minimumOrderQuantity !== 'object' && minimumOrderQuantity !== null) {
+        if (isNaN(Number(minimumOrderQuantity)) || Number(minimumOrderQuantity) <= 0) {
+            return res.status(400).json({ message: 'Minimum order quantity must be a number and greater than 0' });
+        };
+        moq = {
+            value: minimumOrderQuantity,
+            unit: unit,
+            enabled: true
+        };
+    };
+
+    if (typeof minimumOrderQuantity === 'object' && !Array.isArray(minimumOrderQuantity)) {
+        const moqValue = minimumOrderQuantity.value;
+        if (moqValue == null || isNaN(Number(moqValue))) {
+            return res.status(400).json({ message: 'Minimum order quantity must be a number' });
+        }
+        if (Number(moqValue) <= 0) {
+            return res.status(400).json({ message: 'Minimum order quantity value must be greater than 0' });
+        };
+        const moqUnit = unit;
+        const moqEnabled = minimumOrderQuantity.enabled;
+        if (moqEnabled != null && typeof moqEnabled !== 'boolean') {
+            return res.status(400).json({ message: 'Minimum order quantity enabled must be a boolean'});
+        };
+
+        moq = {
+            value: moqValue,
+            unit: moqUnit,
+            enabled: Boolean(moqEnabled)
+        };
+    }
 
     const status_values = ['is_active', 'in_active', 'sold_out'];
     if (!status_values.includes(status) ) {
@@ -54,14 +106,10 @@ const createProduct = async(req, res) => {
             });
         };
         
-        const slug = slugify(name, { lower: true, strict: true });
+        let slug = slugify(name, { lower: true, strict: true });
         const checkProduct = await Product.findOne({ slug });
         if (checkProduct) {
-            return res
-            .status(409)
-            .json({
-                message: 'Product already exists'
-            });
+            slug = `${slug}-${uuid4().slice(0, 4)}`
         };
 
         let uploads = [];
@@ -89,11 +137,12 @@ const createProduct = async(req, res) => {
             name,
             slug,
             description,
+            farmLocation,
             category,
-            quantity,
+            quantity: Number(quantity),
             unit,
-            pricePerUnit,
-            pricePerUnit,
+            pricePerUnit: Number(pricePerUnit),
+            minimumOrderQuantity: moq,
             images,
             status
         });
@@ -128,7 +177,7 @@ const createProduct = async(req, res) => {
 const getProducts = async(req, res) => {
     try {
         const products = await Product.find().sort({ createdAt: -1 });
-        const count = products.length;
+        const count = await Product.countDocuments();
         return res
         .status(200)
         .json({
@@ -187,16 +236,16 @@ const getProductsBySlug = async(req, res) => {
 
 
 const getProductsById = async(req, res) => {
-    const id  = req.params.id;
-    if (!id) {
+    const productId  = req.params.id;
+    if (!productId) {
         return res
         .status(400)
         .json({
-            message: 'id not provided'
+            message: 'product id not provided'
         });
     };
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
         return res
         .status(400)
         .json({
@@ -205,7 +254,7 @@ const getProductsById = async(req, res) => {
     }
 
     try {
-        const product = await Product.findById(id);
+        const product = await Product.findById(productId);
         if (!product) {
             return res
             .status(404)
@@ -230,13 +279,154 @@ const getProductsById = async(req, res) => {
 };
 
 
+const updateProduct = async(req, res) => {
+    const productId = req.params.id;
+    const { name, description, farmLocation, category, quantity, unit, pricePerUnit, status } = req.body;
+    const files = req.files || [];
+    const folder = process.env.CLOUDINARY_FOLDER;
+
+
+    if (!productId) {
+        return res
+        .status(400)
+        .json({
+            message: 'product id not provided'
+        });
+    };
+
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res
+        .status(400)
+        .json({
+            message: 'Invalid product id'
+        });
+    };
+
+    try {
+        const product = await Product.findById(productId);
+        if (!product) {
+            return res
+            .status(404)
+            .json({
+                message: 'Product not found'
+            });
+        };
+
+        if (name && name !== product.name) {
+            let slug;
+            slug = slugify(name, { lower: true, strict: true });
+            if (slug && slug !== product.slug) {
+                const checkProduct = await Product.findOne({ slug, _id: { $ne: productId } });
+                if (checkProduct) {
+                    slug = `${slug}-${uuid4().slice(0, 4)}`
+                };
+            };
+            product.name = name;
+            product.slug = slug;
+
+        }
+        if (description) { product.description = description };
+        if (farmLocation) { product.farmLocation = farmLocation };
+        if (category && mongoose.Types.ObjectId.isValid(category)) {
+            product.category = category;
+        };
+        if (quantity != null) { product.quantity = Number(quantity) };
+        if (unit) { product.unit = unit};
+        if (pricePerUnit != null) { product.pricePerUnit = Number(pricePerUnit) };
+
+        if (minimumOrderQuantity) {
+            let moq = {};
+
+            if (typeof minimumOrderQuantity !== 'object' && minimumOrderQuantity !== null) {
+                if (isNaN(Number(minimumOrderQuantity) || Number(minimumOrderQuantity) <= 0)) {
+                    return res.status(400).json({ message: 'Minimum order quantity must be a number and greater than 0' });
+                };
+                moq = {
+                    value: minimumOrderQuantity,
+                    unit: unit,
+                    enabled: true
+                };
+                product.minimumOrderQuantity = moq;
+            };
+
+            if (typeof minimumOrderQuantity === 'object' && !Array.isArray(minimumOrderQuantity)) {
+                const moqValue = minimumOrderQuantity.value;
+                if (moqValue == null || isNaN(Number(moqValue))) {
+                    return res.status(400).json({ message: 'Minimum order quantity must be a number' });
+                }
+                if (Number(moqValue) <= 0) {
+                    return res.status(400).json({ message: 'Minimum order quantity value must be greater than 0' });
+                };
+                const moqUnit = unit;
+                const moqEnabled = minimumOrderQuantity.enabled;
+                if (typeof moqEnabled  !== 'boolean') {
+                    return res.status(400).json({ message: 'Minimum order quantity enabled must be a boolean'});
+                };
+
+                moq = {
+                    value: moqValue,
+                    unit: moqUnit,
+                    enabled: Boolean(moqEnabled)
+                };
+                product.minimumOrderQuantity = moq;
+            }
+        };
+        
+        if (status) { product.status = status };
+
+        
+        if (files && files.length > 0) {
+            let uploads = [];
+            for (let file of files) {
+                const originalName = file.originalname;
+                const { name: fileName, ext } = path.parse(originalName);
+                const publicId = `${fileName}-${uuid4().slice(0, 8)}`;
+                uploads.push(uploadFile(file.buffer, publicId, folder))
+            }
+
+            const images = [];
+            const uploadResult = await Promise.all(uploads);
+
+            for (const result of uploadResult) {
+                images.push({
+                    url: result.secure_url,
+                    publicId: result.public_id,
+                    resourceType: result.resource_type
+                });
+            }
+            product.images.push(...images);
+
+        };
+
+        await product.save()
+        return res
+        .status(200)
+        .json({
+            message: 'Product updated successfully',
+            data: product
+        });
+
+    } catch(error) {
+        console.error(error);
+        return res
+        .status(500)
+        .json({
+            message: 'Internal Server Error'
+        });
+    }
+
+}
+
+
+
+
 const deleteProduct = async(req, res) => {
     const productId = req.params.id;
     if (!productId) {
         return res
         .status(400)
         .json({
-            message: 'id not provided'
+            message: 'product id not provided'
         });
     };
 
@@ -259,10 +449,12 @@ const deleteProduct = async(req, res) => {
         };
 
         const publicIds = [];
-        for (const image of product.images) {
-            if (image && image.publicId) {
-                publicIds.push(image.publicId)
-            }
+        if (Array.isArray(product.images)) {
+            for (const image of product.images) {
+                if (image && image.publicId) {
+                    publicIds.push(image.publicId)
+                }
+            };
         };
 
         if (publicIds.length) {
@@ -311,6 +503,7 @@ const deleteProduct = async(req, res) => {
 module.exports = {
     createProduct,
     getProducts,
+    updateProduct,
     deleteProduct,
     getProductsById
 }

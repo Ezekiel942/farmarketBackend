@@ -63,7 +63,7 @@ const createCategory = async(req, res) => {
 const getCategories = async(req, res) => {
     try {
         const categories = await Category.find().sort({ createdAt: -1 });
-        const count = categories.length;
+        const count = await Category.countDocuments();
         return res
         .status(200)
         .json({
@@ -90,7 +90,7 @@ const getCategoryProducts = async(req, res) => {
         return res
         .status(400)
         .json({
-            message: 'id not provided'
+            message: 'category id not provided'
         });
     };
 
@@ -171,16 +171,16 @@ const getCategoryBySlug = async(req, res) => {
 
 
 const getCategoryById = async(req, res) => {
-    const id  = req.params.id;
-    if (!id) {
+    const categoryId  = req.params.id;
+    if (!categoryId) {
         return res
         .status(400)
         .json({
-            message: 'id not provided'
+            message: 'category id not provided'
         });
     };
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
         return res
         .status(400)
         .json({
@@ -189,7 +189,7 @@ const getCategoryById = async(req, res) => {
     };
 
     try {
-        const category = await Category.findById(id);
+        const category = await Category.findById(categoryId);
         if (!category) {
             return res
             .status(404)
@@ -216,18 +216,18 @@ const getCategoryById = async(req, res) => {
 
 
 const updateCategory = async(req, res) => {
-    const id = req.params.id;
+    const categoryId = req.params.id;
     const { name } = req.body;
 
-    if (!id) {
+    if (!categoryId) {
         return res
         .status(400)
         .json({
-            message: 'id not provided'
+            message: 'category id not provided'
         });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
         return res
         .status(400)
         .json({
@@ -236,7 +236,7 @@ const updateCategory = async(req, res) => {
     }
 
     try {
-        const category = await Category.findById(id)
+        const category = await Category.findById(categoryId)
         if (!category) {
             return res
             .status(404)
@@ -247,10 +247,10 @@ const updateCategory = async(req, res) => {
 
         let slug;
 
-        if (name) {
+        if (name && name !== category.name) {
             slug = slugify(name, { lower: true, strict: true });
             if (slug && slug !== category.slug) {
-                const checkCategory = await Category.findOne({ slug });
+                const checkCategory = await Category.findOne({ slug, _id: { $ne: categoryId } });
                 if (checkCategory) {
                     return res
                     .status(409)
@@ -273,7 +273,7 @@ const updateCategory = async(req, res) => {
         });
 
     } catch(error) {
-        if (error && error === 11000) {
+        if (error && error.code === 11000) {
             return res
             .status(409)
             .json({
@@ -293,17 +293,17 @@ const updateCategory = async(req, res) => {
 
 
 const deleteCategory = async(req, res) => {
-    const id = req.params.id;
+    const categoryId = req.params.id;
 
-    if(!id) {
+    if(!categoryId) {
         return res
         .status(400)
         .json({
-            message: 'id not provided'
+            message: 'category id not provided'
         });
     };
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
+    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
         return res
         .status(400)
         .json({
@@ -312,7 +312,15 @@ const deleteCategory = async(req, res) => {
     };
 
     try {
-        const deletedCategory = await Category.findByIdAndDelete(id);
+        const productCount = await Product.countDocuments({ category: categoryId });
+        if (productCount > 0) {
+            return res
+            .status(409)
+            .json({
+                message: 'Category has products, cannot delete'
+            });
+        }
+        const deletedCategory = await Category.findByIdAndDelete(categoryId);
         if (!deletedCategory) {
             return res
             .status(404)
