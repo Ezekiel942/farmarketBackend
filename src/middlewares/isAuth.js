@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const User = require("../models/user");
+const User = require("../models/user.schema");
 
 exports.isAuth = async (req, res, next) => {
   try {
@@ -12,7 +12,7 @@ exports.isAuth = async (req, res, next) => {
 
     next();
   } catch (err) {
-    res.status(401).json({ message: "Invalid token" });
+    return res.status(401).json({ message: "Invalid token" });
   }
 };
 

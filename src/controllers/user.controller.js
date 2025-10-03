@@ -1,73 +1,154 @@
-const User = require("../models/user");
+const mongoose = require('mongoose');
+const User = require("../models/user.schema");
+
 
 // List all users (admin only)
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
-    res.json(users);
+    res.status(200).json({
+      message: 'All users retrieved successfully',
+      data: users
+  });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
 // Fetch a single user
 exports.getUser = async (req, res) => {
+  const userId = req.params.id;
+  if (!userId) {
+    return res
+    .status(400)
+    .json({ message: 'User id not provided' });
+  };
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res
+    .status(400)
+    .json({ message: 'Invalid user id' });
+  }
   try {
-    const user = await User.findById(req.params.id).select("-password");
+    const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.json(user);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    return res
+    .status(200)
+    .json({ data: user });
+
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
 // Update user
 exports.updateUser = async (req, res) => {
+  const userId = req.params.id;
+  const { firstName, lastName, email, password, phone, farmName, farmLocation } = req.body;
+
+  if (!userId) {
+    return res
+    .status(400)
+    .json({ message: 'User id not provided' });
+  };
+
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res
+    .status(400)
+    .json({ message: 'Invalid user id' });
+  }
   try {
-    const { name, email, password } = req.body;
-    const user = await User.findById(req.params.id);
+  
+    const user = await User.findById(userId).select('+password');
 
     if (!user) return res.status(404).json({ message: "User not found" });
-
-    if (name) user.name = name;
-    if (email) user.email = email;
-    if (password) user.password = password;
+    if (firstName) { user.firstName = firstName };
+    if (lastName) { user.lastName = lastName };
+    if (email) { user.email = email };
+    if (phone) { user.phone = phone };
+    if (farmName) { user.farmName = farmName };
+    if (farmLocation) { user.farmLocation = farmLocation};
+    if (password) { user.password = password };
+    
 
     await user.save();
-    res.json({ message: "User updated successfully", user });
+    const userData = await User.findById(userId).select('-password');
+    return res
+    .status(200)
+    .json({
+      message: "User updated successfully",
+      data: userData
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
 
 // Delete user
 exports.deleteUser = async (req, res) => {
-  try {
-    const user = await User.findByIdAndDelete(req.params.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
+  const userId = req.params.id;
+  if (!userId) {
+    return res
+    .status(400)
+    .json({ message: 'User id not provided' });
+  };
 
-    res.json({ message: "User deleted successfully" });
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res
+    .status(400)
+    .json({ message: 'Invalid user id' });
+  }
+  try {
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    return res
+    .status(200)
+    .json({
+      message: "User deleted successfully",
+      data: user
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
 
+
 // Set role
 exports.setUserRole = async (req, res) => {
-  try {
-    const { role } = req.body;
-    if (!["buyer", "farmer", "admin"].includes(role)) {
-      return res.status(400).json({ message: "Invalid role" });
-    }
+  const userId = req.params.id;
+  if (!userId) {
+    return res
+    .status(400)
+    .json({ message: 'User id not provided' });
+  };
 
-    const user = await User.findById(req.params.id);
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return res
+    .status(400)
+    .json({ message: 'Invalid user id' });
+  }
+  try {
+    const role = req.body;
+    if (!["buyer", "farmer"].includes(role)) {
+      return res.status(400).json({ message: "Incorrect role: You can either be a Farmer or a Buyer" });
+    }
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.role = role;
     await user.save();
 
-    res.json({ message: "Role updated successfully", user });
+    return res.json({
+      message: "Role updated successfully",
+      data: user
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(err)
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

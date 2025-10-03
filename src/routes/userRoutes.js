@@ -6,6 +6,7 @@ const {
   deleteUser,
   setUserRole,
 } = require("../controllers/user.controller");
+
 const { isAuth, isAdmin } = require("../middleware/isAuth");
 
 const router = express.Router();
