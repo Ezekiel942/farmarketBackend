@@ -15,9 +15,10 @@ router.post('/', createCategory);
 router.get('/', getCategories);
 router.get('/:id/products', getCategoryProducts);
 router.get('/:id', getCategoryById);
-//router.get('/:slug', getCategoryBySlug);
 router.put('/:id', updateCategory);
 router.delete('/:id', deleteCategory);
+//router.get('/:slug', getCategoryBySlug);
+
 
 
 module.exports = router;
