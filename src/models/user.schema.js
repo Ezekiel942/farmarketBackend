@@ -3,6 +3,11 @@ const bcrypt = require('bcrypt');
 
 const saltRounds = 11;
 
+const profileImageSchema = new mongoose.Schema({
+  url: { type: String },
+  publicId: { type: String}
+}, {_id: false});
+
 const userSchema = new mongoose.Schema(
   {
     firstName: {
@@ -44,11 +49,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true
     },
-    profileImage: [{
-      url: { type: String},
-      publicId: {type: String}
-    }],
+    profileImage: profileImageSchema,
     isVerified: {
+      type: Boolean,
+      default: false
+    },
+        isAdmin: {
       type: Boolean,
       default: false
     }

@@ -43,7 +43,7 @@ exports.getUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     return res
     .status(200)
-    .json({ data: user });
+    .json({ user });
 
     } catch (err) {
       console.error(err);
@@ -54,7 +54,7 @@ exports.getUser = async (req, res) => {
 // Update user
 exports.updateUser = async (req, res) => {
   const userId = req.params.id;
-  const { firstName, lastName, email, password, phone, farmName, farmLocation } = req.body;
+  const { firstName, lastName, email, password, role, phone, farmName, farmLocation } = req.body;
 
   if (!userId) {
     return res
@@ -88,8 +88,14 @@ exports.updateUser = async (req, res) => {
     if (farmName) { user.farmName = farmName };
     if (farmLocation) { user.farmLocation = farmLocation};
     if (password) { user.password = password };
+    if (role) {
+      const normalizedRole = String(role).trim().toLowerCase();
+      if (!["buyer", "farmer"].includes(normalizedRole)) {
+        return res.status(400).json({ message: "Incorrect role: You can either be a Farmer or a Buyer" });
+      }
+      user.role = normalizedRole;
+    };
     
-
     await user.save();
     const userData = await User.findById(userId).select('-password');
     return res
@@ -159,7 +165,7 @@ exports.setUserRole = async (req, res) => {
     .json({ message: 'Invalid user id' });
   }
 
-  if (!["buyer", "farmer"].includes(role)) {
+  if (!["buyer", "farmer", "admin"].includes(role)) {
     return res.status(400).json({ message: "Incorrect role: You can either be a Farmer or a Buyer" });
   }
   

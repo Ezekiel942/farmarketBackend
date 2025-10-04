@@ -42,7 +42,7 @@ exports.signup = async (req, res) => {
     .json({ 
       message: 'User successfully created',
       token,
-      userData
+      user: userData
       });
   } catch (error) {
     console.error(error)
@@ -82,7 +82,7 @@ exports.login = async (req, res) => {
     .json({ 
       message: 'User logged in succesfully',
       token, 
-      userData
+      user: userData
      });
   } catch (error) {
     console.error(error)
