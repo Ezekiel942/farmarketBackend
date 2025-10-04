@@ -74,7 +74,16 @@ exports.updateUser = async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     if (firstName) { user.firstName = firstName };
     if (lastName) { user.lastName = lastName };
-    if (email) { user.email = email };
+    if (email) {
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const exist = await User.findOne({ email: normalizedEmail, _id: { $ne: userId }});
+      if(exist) {
+        return res
+        .status(409)
+        .json({ message: 'Email already in use'});
+      }
+      user.email = normalizedEmail;
+    };
     if (phone) { user.phone = phone };
     if (farmName) { user.farmName = farmName };
     if (farmLocation) { user.farmLocation = farmLocation};
@@ -121,14 +130,13 @@ exports.deleteUser = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    if (err && err.code == 11000) {
+    if (err && err.code === 11000) {
       return res
-      .status(409
+      .status(409)
       .json({
         message: 'User already exists'
-      })
-      )
-    }
+      });
+    };
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };

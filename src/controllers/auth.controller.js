@@ -16,7 +16,7 @@ exports.signup = async (req, res) => {
   if (!lastName) { return res.status(400).json({ message: 'lastName is required' })};
   if (!email) { return res.status(400).json({ message: 'email is required' })};
   if (!password) { return res.status(400).json({ message: 'password is required' })};
-
+  if (password.length < 6) { return res.status(400).json({ message: ''})};
   if (password !== confirmPassword) { return res.status(400).json({ message: 'passwords do not match' })};
   try {
     

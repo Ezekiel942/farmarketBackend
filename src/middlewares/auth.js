@@ -1,5 +1,6 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/user.schema");
+const JWT_SECRET = "supersecret";
 
 exports.isAuth = async (req, res, next) => {
   try {
