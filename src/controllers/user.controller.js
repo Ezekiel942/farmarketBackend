@@ -2,6 +2,14 @@ const mongoose = require('mongoose');
 const User = require("../models/user.schema");
 
 
+
+exports.getMe = async(req, res) => {
+  return res
+  .status(200)
+  .json({ user: req.user });
+};
+
+
 // List all users (admin only)
 exports.getUsers = async (req, res) => {
   try {
@@ -113,6 +121,14 @@ exports.deleteUser = async (req, res) => {
     });
   } catch (err) {
     console.error(err);
+    if (err && err.code == 11000) {
+      return res
+      .status(409
+      .json({
+        message: 'User already exists'
+      })
+      )
+    }
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
@@ -121,6 +137,8 @@ exports.deleteUser = async (req, res) => {
 // Set role
 exports.setUserRole = async (req, res) => {
   const userId = req.params.id;
+  const { role } = req.body;
+  
   if (!userId) {
     return res
     .status(400)
@@ -132,12 +150,14 @@ exports.setUserRole = async (req, res) => {
     .status(400)
     .json({ message: 'Invalid user id' });
   }
+
+  if (!["buyer", "farmer"].includes(role)) {
+    return res.status(400).json({ message: "Incorrect role: You can either be a Farmer or a Buyer" });
+  }
+  
   try {
-    const role = req.body;
-    if (!["buyer", "farmer"].includes(role)) {
-      return res.status(400).json({ message: "Incorrect role: You can either be a Farmer or a Buyer" });
-    }
-    const user = await User.findById(userId);
+    
+    const user = await User.findById(userId).select('-password');
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.role = role;

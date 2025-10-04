@@ -1,70 +1,95 @@
-const User = require("../models/user");
+const User = require("../models/user.schema");
 const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
 
-const JWT_SECRET = "supersecret"; //  move to env in real projects
+const JWT_SECRET = "supersecret";
+const JWT_EXPIRES = process.env.JWT_EXPIRES || '1h';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, JWT_SECRET, { expiresIn: "1h" });
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, JWT_SECRET, { expiresIn: JWT_EXPIRES });
 };
+
+
 
 exports.signup = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+  const { firstName, lastName, email, password, confirmPassword } = req.body;
+  if (!firstName) { return res.status(400).json({ message: 'firstName is required' })};
+  if (!lastName) { return res.status(400).json({ message: 'lastName is required' })};
+  if (!email) { return res.status(400).json({ message: 'email is required' })};
+  if (!password) { return res.status(400).json({ message: 'password is required' })};
 
-    // Check if user exists
-    const existing = await User.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ error: "Email already in use" });
+  if (password !== confirmPassword) { return res.status(400).json({ message: 'passwords do not match' })};
+  try {
+    
+    const normalizedEmail = String(email).trim().toLowerCase()
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ message: "Email already in use" });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({
+      firstName,
+      lastName,
+      email: normalizedEmail,
+      password
+    });
+    
+    await user.save();
+    const token = generateToken(user._id, user.role);
 
-    const user = await User.create({ name, email, password: hashedPassword });
-    const token = generateToken(user._id);
-
-    res.status(201).json({ token, user });
+    const userData = await User.findById(user._id).select('-password');
+    return res
+    .status(201)
+    .json({ 
+      message: 'User successfully created',
+      token,
+      userData
+      });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error)
+    if (error && error.code == 11000) {
+      return res
+      .status(409)
+      .json({
+        message: 'User already exists'
+      });
+    };
+    return res
+    .status(500)
+    .json({ message: 'Internal Server Error' });
   }
 };
+
+
 
 exports.login = async (req, res) => {
+  const { email, password } = req.body;
+  if (!email) { return res.status(400).json({ message: 'Email is required' })};
+  if (!password) { return res.status(400).json({ message: 'Password is required' })};
+
   try {
-    const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+    const normalizedEmail = String(email).trim().toLowerCase();
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
+    if (!user) return res.status(400).json({ message: "Invalid email/password" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) return res.status(400).json({ message: "Invalid email/password" });
 
-    const token = generateToken(user._id);
-    res.status(200).json({ token, user });
+    const token = generateToken(user._id, user.role);
+    const userData = await User.findById(user._id).select('-password');
+    return res
+    .status(200)
+    .json({ 
+      message: 'User logged in succesfully',
+      token, 
+      userData
+     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error(error)
+    return res
+    .status(500)
+    .json({ message: 'Internal Server Error' });
   }
 };
 
-exports.protect = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "No token" });
-    }
-    const token = authHeader.split(" ")[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
 
-    req.user = await User.findById(decoded.id).select("-password");
-    if (!req.user) return res.status(401).json({ error: "User not found" });
-
-    next();
-  } catch (err) {
-    res.status(401).json({ error: "Invalid token" });
-  }
-};
-
-exports.getMe = (req, res) => {
-  res.status(200).json({ user: req.user });
-};
