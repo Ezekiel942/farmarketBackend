@@ -1,8 +1,7 @@
 const dotenv = require('dotenv');
 const app = require('./app');
 const connectDB = require('./config/db');
-const userRouter = require('./routes/user.routes');
-const authRouter = require('./routes/auth.routes');
+
 
 
 dotenv.config();
@@ -21,10 +20,6 @@ connectDB()
     });
 
 
-app.get('/', (req, res) => {
-    res.send('This is the API homepage')
-});
 
 
-app.use('/api/users', userRouter);
-app.use('/api/auth', authRouter);
+

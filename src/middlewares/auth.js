@@ -18,7 +18,7 @@ exports.isAuth = async (req, res, next) => {
     try {
       decoded = jwt.verify(token, JWT_SECRET);
     } catch (error) {
-      console.error(error);
+      //console.error(error);
       return res
       .status(401)
       .json({

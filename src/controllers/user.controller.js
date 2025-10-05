@@ -151,7 +151,7 @@ exports.deleteUser = async (req, res) => {
 // Set role
 exports.setUserRole = async (req, res) => {
   const userId = req.params.id;
-  const { role } = req.body;
+  let { role } = req.body;
   
   if (!userId) {
     return res
@@ -165,10 +165,18 @@ exports.setUserRole = async (req, res) => {
     .json({ message: 'Invalid user id' });
   }
 
-  if (!["buyer", "farmer", "admin"].includes(role)) {
-    return res.status(400).json({ message: "Incorrect role: You can either be a Farmer or a Buyer" });
+  if (role != null) {
+    role = String(role).trim().toLowerCase();
   }
-  
+
+  if ( !role || !["buyer", "farmer", "admin"].includes(role)) {
+    return res
+    .status(400)
+    .json({
+      message: "Incorrect role: You can either be a Farmer or a Buyer"
+    });
+  }
+ 
   try {
     
     const user = await User.findById(userId).select('-password');
