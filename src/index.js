@@ -2,6 +2,8 @@ const dotenv = require('dotenv');
 const app = require('./app');
 const connectDB = require('./config/db');
 
+
+
 dotenv.config();
 const port = process.env.PORT;
 
@@ -16,3 +18,8 @@ connectDB()
         console.log(error)
         process.exit(1)
     });
+
+
+
+
+
