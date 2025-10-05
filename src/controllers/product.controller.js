@@ -11,6 +11,13 @@ require('dotenv').config();
 
 
 const createProduct = async(req, res) => {
+    if (req.user.role != 'farmer' || req.user.role != 'admin') {
+        return res
+        .status(401)
+        .json({
+            message: ''
+        });
+    }
     const {
         name,
         description,
@@ -139,6 +146,7 @@ const createProduct = async(req, res) => {
             description,
             farmLocation,
             category,
+            farmer: req.user,
             quantity: Number(quantity),
             unit,
             pricePerUnit: Number(pricePerUnit),
