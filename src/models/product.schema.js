@@ -25,10 +25,6 @@ const productSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId, ref: 'User',
         required: true
     },
-    farmLocation: {
-        type: String,
-        required: true
-    },
     quantity: {
         type: Number,
         default: 0

@@ -11,17 +11,16 @@ require('dotenv').config();
 
 
 const createProduct = async(req, res) => {
-    if (req.user.role != 'farmer' || req.user.role != 'admin') {
+    if (!req.user || (req.user.role !== 'farmer' || req.user.role !=- 'admin')) {
         return res
-        .status(401)
+        .status(403)
         .json({
-            message: ''
+            message: 'Only farmers or admins can add products'
         });
     }
     const {
         name,
         description,
-        farmLocation,
         category,
         quantity,
         unit,
@@ -40,9 +39,6 @@ const createProduct = async(req, res) => {
     if (!description) {
         return res.status(400).json({ message: 'Product description is required' });
     };  
-    if (!farmLocation) {
-        return res.status(400).json({ message: 'Farm location is required' });
-    };
     if (!category) {
         return res.status(400).json({ message: 'Product category is required' });
     };
@@ -119,7 +115,7 @@ const createProduct = async(req, res) => {
             slug = `${slug}-${uuid4().slice(0, 4)}`
         };
 
-        let uploads = [];
+        const uploads = [];
         if (files.length > 0) {
             for (let file of files) {
                 const originalName = file.originalname;
@@ -144,9 +140,8 @@ const createProduct = async(req, res) => {
             name,
             slug,
             description,
-            farmLocation,
             category,
-            farmer: req.user,
+            farmer: req.user._id,
             quantity: Number(quantity),
             unit,
             pricePerUnit: Number(pricePerUnit),
@@ -289,7 +284,8 @@ const getProductsById = async(req, res) => {
 
 const updateProduct = async(req, res) => {
     const productId = req.params.id;
-    const { name, description, farmLocation, category, quantity, unit, pricePerUnit, status } = req.body;
+    const farmer = req.user._id;
+    const { name, description, category, quantity, unit, pricePerUnit, status } = req.body;
     const files = req.files || [];
     const folder = process.env.CLOUDINARY_FOLDER;
 
@@ -320,6 +316,16 @@ const updateProduct = async(req, res) => {
             });
         };
 
+        if (req.user.role !== 'admin') {
+            if (!product.farmer.toString() !== farmer.toString()) {
+                return res
+                .status(403)
+                .json({
+                    message: 'You cannot update this farm product'
+                });
+            };
+        };
+
         if (name && name !== product.name) {
             let slug;
             slug = slugify(name, { lower: true, strict: true });
@@ -334,7 +340,6 @@ const updateProduct = async(req, res) => {
 
         }
         if (description) { product.description = description };
-        if (farmLocation) { product.farmLocation = farmLocation };
         if (category && mongoose.Types.ObjectId.isValid(category)) {
             product.category = category;
         };
@@ -342,10 +347,10 @@ const updateProduct = async(req, res) => {
         if (unit) { product.unit = unit};
         if (pricePerUnit != null) { product.pricePerUnit = Number(pricePerUnit) };
 
-        if (minimumOrderQuantity) {
+        if (minimumOrderQuantity !== null) {
             let moq = {};
 
-            if (typeof minimumOrderQuantity !== 'object' && minimumOrderQuantity !== null) {
+            if (typeof minimumOrderQuantity !== 'object') {
                 if (isNaN(Number(minimumOrderQuantity) || Number(minimumOrderQuantity) <= 0)) {
                     return res.status(400).json({ message: 'Minimum order quantity must be a number and greater than 0' });
                 };
@@ -430,6 +435,7 @@ const updateProduct = async(req, res) => {
 
 const deleteProduct = async(req, res) => {
     const productId = req.params.id;
+    const farmer = req.user._id;
     if (!productId) {
         return res
         .status(400)
@@ -455,7 +461,15 @@ const deleteProduct = async(req, res) => {
                 message: 'product not found'
             });
         };
-
+        if (req.user.role !== 'admin') {
+            if (!product.farmer.toString() !== farmer.toString()) {
+                return res
+                .status(403)
+                .json({
+                    message: 'You cannot delete this farm product'
+                });
+            };
+        };
         const publicIds = [];
         if (Array.isArray(product.images)) {
             for (const image of product.images) {
