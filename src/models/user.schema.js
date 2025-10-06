@@ -8,6 +8,7 @@ const profileImageSchema = new mongoose.Schema({
   publicId: { type: String}
 }, {_id: false});
 
+
 const userSchema = new mongoose.Schema(
   {
     firstName: {

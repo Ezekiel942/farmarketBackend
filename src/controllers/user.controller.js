@@ -54,6 +54,7 @@ exports.getUser = async (req, res) => {
 // Update user
 exports.updateUser = async (req, res) => {
   const userId = req.params.id;
+  const authUser = req.user._id;
   const { firstName, lastName, email, password, role, phone, farmName, farmLocation } = req.body;
 
   if (!userId) {
@@ -67,9 +68,21 @@ exports.updateUser = async (req, res) => {
     .status(400)
     .json({ message: 'Invalid user id' });
   }
+
+
   try {
   
     const user = await User.findById(userId).select('+password');
+    
+    if (req.user.role !== 'admin') {
+      if (user._id.toString() !== authUser.toString()) {
+          return res
+          .status(403)
+          .json({
+              message: 'Permission Denied'
+          });
+      };
+    };
 
     if (!user) return res.status(404).json({ message: "User not found" });
     if (firstName) { user.firstName = firstName };
@@ -114,6 +127,7 @@ exports.updateUser = async (req, res) => {
 // Delete user
 exports.deleteUser = async (req, res) => {
   const userId = req.params.id;
+  const authUser = req.user._id;
   if (!userId) {
     return res
     .status(400)
@@ -124,8 +138,22 @@ exports.deleteUser = async (req, res) => {
     return res
     .status(400)
     .json({ message: 'Invalid user id' });
-  }
+  };
+
+  const checkUser = await User.findById(userId);
+  if (!checkUser) { return res.status(404).json({ message: 'User not found' })};
+  if (req.user.role !== 'admin') {
+    if (checkUser._id.toString() !== authUser.toString()) {
+      return res
+      .status(403)
+      .json({
+          message: 'Permission Denied'
+      });
+    };
+  };
+
   try {
+
     const user = await User.findByIdAndDelete(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
     return res
