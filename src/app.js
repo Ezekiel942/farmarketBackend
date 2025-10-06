@@ -3,6 +3,8 @@ const morgan = require('morgan');
 const dotenv = require('dotenv');
 const helmet = require('helmet');
 const cors = require('cors');
+const swaggerUI = require('swagger-ui-express');
+const swaggerSpec = require('./config/swagger.js');
 const userRouter = require('./routes/user.routes');
 const authRouter = require('./routes/auth.routes');
 const categoryRouter = require('./routes/category.routes');
@@ -18,6 +20,8 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('dev'));
+app.use('/api/docs', swaggerUI.serve, swaggerUI.setup(swaggerSpec));
+
 
 
 app.get('/', (req, res) => {
