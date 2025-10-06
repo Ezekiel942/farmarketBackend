@@ -48,14 +48,14 @@ const createProduct = async(req, res) => {
     if (!unit || typeof unit !== 'string') {
         return res.status(400).json({ message: 'Product units is required' });
     };
-    if (quantity != null && quantity !== '') {
+    if (typeof quantity !== 'undefined' && quantity !== null && quantity !== '') {
         if (isNaN(Number(quantity)) || Number(quantity) <= 0) {
             return res.status(400).json({ message: 'Quantity is required and must be a number > 0' });
          };
     };
 
 
-    if (pricePerUnit == null || pricePerUnit === ''){
+    if (typeof pricePerUnit === 'undefined' && pricePerUnit == null || pricePerUnit === ''){
         return res.status(400).json({ message: 'Price per unit is required and must be a number > 0' });
     };
     if (isNaN(Number(pricePerUnit)) || (Number(pricePerUnit) <= 0)) {
@@ -368,14 +368,14 @@ const updateProduct = async(req, res) => {
         if (category && mongoose.Types.ObjectId.isValid(category)) {
             product.category = category;
         };
-        if (quantity !== null && quantity !== "") {
+        if (typeof quantity !== 'undefined' && quantity !== null && quantity !== "") {
             if (Number(quantity) <= 0) {
                 return res.status(400).json({ message: 'Quantity must be a number > 0'});
             };
             product.quantity = Number(quantity);
         };
         if (unit) { product.unit = unit};
-        if (pricePerUnit !== null && pricePerUnit !== "") {
+        if (typeof pricePerUnit !== 'undefined' && pricePerUnit !== null && pricePerUnit !== "") {
             if (Number(pricePerUnit) <= 0) {
                 return res.status(200).json({ message: 'pricePerUnit must be number > 0'});
             };
