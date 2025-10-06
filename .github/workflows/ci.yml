@@ -1,0 +1,79 @@
+name: FarmarketBackend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      MONGO_DB_NAME: farmarket_test
+      MONGO_URL: mongodb://localhost:27017/farmarket_test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Start MongoDB (docker)
+        run: |
+          docker run -d --name ci-mongo -p 27017:27017 mongo:6 --bind_ip_all
+          echo "Started mongo container"
+          docker ps -a
+
+      - name: Wait for MongoDB (mongosh inside container)
+        run: |
+          # Try to ping the DB from inside the container up to 60 times
+          for i in {1..60}; do
+            if docker exec ci-mongo mongosh --quiet --eval 'db.adminCommand("ping")' >/dev/null 2>&1; then
+              echo "MongoDB is ready"
+              exit 0
+            fi
+            echo "Waiting for MongoDB... ($i/60)"
+            sleep 1
+          done
+          echo "Mongo did not start in time" && docker logs ci-mongo --tail 500 && exit 1
+
+      - name: Install dependencies (npm ci fallback)
+        run: |
+          if [ -f package-lock.json ]; then
+            echo "Found package-lock.json -> running npm ci"
+            npm ci
+          else
+            echo "No lockfile -> running npm install"
+            npm install
+          fi
+
+      - name: Run tests
+        run: npm test
+        env:
+          MONGO_URL: ${{ env.MONGO_URL }}
+          NODE_ENV: ${{ env.NODE_ENV }}
+
+      - name: Show Mongo logs (on failure)
+        if: failure()
+        run: docker logs ci-mongo --tail 500 || true
+
+      - name: Cleanup Mongo container
+        if: always()
+        run: |
+          docker rm -f ci-mongo || true
+
+

@@ -1,12 +1,29 @@
 {
   "name": "farmarketbackend",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "jest --runInBand --detectOpenHandles"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.2",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongodb-memory-server": "^10.2.2",
+    "mongoose": "^8.8.1",
+    "morgan": "^1.10.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.9",
+    "supertest": "^7.0.0"
+  }
 }
