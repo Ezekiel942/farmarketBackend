@@ -11,7 +11,7 @@ require('dotenv').config();
 
 
 const createProduct = async(req, res) => {
-    if (!req.user || (req.user.role !== 'farmer' || req.user.role !=- 'admin')) {
+    if (!req.user || (req.user.role !== 'farmer' && req.user.role !== 'admin')) {
         return res
         .status(403)
         .json({
@@ -45,58 +45,83 @@ const createProduct = async(req, res) => {
     if (!mongoose.Types.ObjectId.isValid(category)) {
         return res.status(400).json({ message: 'Invalid category id' });
     };
-    if (!unit) {
+    if (!unit || typeof unit !== 'string') {
         return res.status(400).json({ message: 'Product units is required' });
     };
-    if (quantity == null || isNaN(Number(quantity))) {
-        return res.status(400).json({ message: 'Quantity is required and must be a number' });
+    if (quantity != null && quantity !== '') {
+        if (isNaN(Number(quantity)) || Number(quantity) <= 0) {
+            return res.status(400).json({ message: 'Quantity is required and must be a number > 0' });
+         };
     };
-    if (pricePerUnit == null || isNaN(Number(pricePerUnit))) {
-        return res.status(400).json({ message: 'Price per unit is required and must be a number' });
+
+
+    if (pricePerUnit == null || pricePerUnit === ''){
+        return res.status(400).json({ message: 'Price per unit is required and must be a number > 0' });
     };
+    if (isNaN(Number(pricePerUnit)) || (Number(pricePerUnit) <= 0)) {
+        return res.status(400).json({ message: 'Price per unit is required and must be a number > 0' });  
+    };
+    
 
     let moq = {
-        value: 1,
-        unit: unit,
-        enabled: false
-    }
-
-    if (typeof minimumOrderQuantity !== 'object' && minimumOrderQuantity !== null) {
-        if (isNaN(Number(minimumOrderQuantity)) || Number(minimumOrderQuantity) <= 0) {
-            return res.status(400).json({ message: 'Minimum order quantity must be a number and greater than 0' });
-        };
-        moq = {
-            value: minimumOrderQuantity,
-            unit: unit,
-            enabled: true
-        };
+        unit: unit
     };
 
-    if (typeof minimumOrderQuantity === 'object' && !Array.isArray(minimumOrderQuantity)) {
-        const moqValue = minimumOrderQuantity.value;
-        if (moqValue == null || isNaN(Number(moqValue))) {
-            return res.status(400).json({ message: 'Minimum order quantity must be a number' });
+    if (minimumOrderQuantity != null && minimumOrderQuantity !== "") {
+        let checkEnabled;
+        if (typeof minimumOrderQuantity !== 'object' && minimumOrderQuantity !== null) {
+            if (isNaN(Number(minimumOrderQuantity)) || Number(minimumOrderQuantity) <= 0) {
+                return res.status(400).json({ message: 'Minimum order quantity must be a number and greater than 0' });
+            };
+            if (minimumOrderQuantity < 2) {
+                checkEnabled = false;
+            } else { checkEnabled = true };
+            moq = {
+                value: minimumOrderQuantity,
+                unit: unit,
+                enabled: checkEnabled
+            };
+        };
+
+        if (typeof minimumOrderQuantity === 'object' && minimumOrderQuantity !== null && !Array.isArray(minimumOrderQuantity)) {
+            const moqValue = Number(minimumOrderQuantity.value);
+            if (moqValue == null || isNaN(Number(moqValue))) {
+                return res.status(400).json({ message: 'Minimum order quantity must be a number' });
+            }
+            if (Number(moqValue) <= 0) {
+                return res.status(400).json({ message: 'Minimum order quantity value must be greater than 0' });
+            };
+            const moqUnit = unit;
+            let moqEnabled = minimumOrderQuantity.enabled;
+            if (moqEnabled != null && typeof moqEnabled !== 'boolean') {
+                return res.status(400).json({ message: 'Minimum order quantity enabled must be a boolean'});
+            };
+
+            if (moqValue < 2) {
+                moqEnabled = false
+            } else { moqEnabled = true};
+
+            moq = {
+                value: moqValue,
+                unit: moqUnit,
+                enabled: Boolean(moqEnabled)
+            };
         }
-        if (Number(moqValue) <= 0) {
-            return res.status(400).json({ message: 'Minimum order quantity value must be greater than 0' });
-        };
-        const moqUnit = unit;
-        const moqEnabled = minimumOrderQuantity.enabled;
-        if (moqEnabled != null && typeof moqEnabled !== 'boolean') {
-            return res.status(400).json({ message: 'Minimum order quantity enabled must be a boolean'});
-        };
+    };
 
-        moq = {
-            value: moqValue,
-            unit: moqUnit,
-            enabled: Boolean(moqEnabled)
-        };
+    let newStatus;
+
+    if (status !== undefined && status !== null && status !== '') {
+    const statusValues = ['is_active', 'in_active', 'sold_out'];
+
+    if (!statusValues.includes(status)) {
+        return res.status(400).json({
+        message: "Product status must either be 'is_active', 'in_active', or 'sold_out'",
+        });
     }
 
-    const status_values = ['is_active', 'in_active', 'sold_out'];
-    if (!status_values.includes(status) ) {
-        return res.status(400).json({ message: "Product status must either be 'is_active', 'in_active', 'sold_out'" });
-    };
+    newStatus = status; 
+    }
 
     try {
 
@@ -147,7 +172,7 @@ const createProduct = async(req, res) => {
             pricePerUnit: Number(pricePerUnit),
             minimumOrderQuantity: moq,
             images,
-            status
+            status: newStatus
         });
 
         await newProduct.save()
@@ -285,7 +310,7 @@ const getProductsById = async(req, res) => {
 const updateProduct = async(req, res) => {
     const productId = req.params.id;
     const farmer = req.user._id;
-    const { name, description, category, quantity, unit, pricePerUnit, status } = req.body;
+    const { name, description, category, quantity, unit, pricePerUnit, status, minimumOrderQuantity } = req.body;
     const files = req.files || [];
     const folder = process.env.CLOUDINARY_FOLDER;
 
@@ -317,7 +342,7 @@ const updateProduct = async(req, res) => {
         };
 
         if (req.user.role !== 'admin') {
-            if (!product.farmer.toString() !== farmer.toString()) {
+            if (product.farmer.toString() !== farmer.toString()) {
                 return res
                 .status(403)
                 .json({
@@ -343,27 +368,45 @@ const updateProduct = async(req, res) => {
         if (category && mongoose.Types.ObjectId.isValid(category)) {
             product.category = category;
         };
-        if (quantity != null) { product.quantity = Number(quantity) };
+        if (quantity !== null && quantity !== "") {
+            if (Number(quantity) <= 0) {
+                return res.status(400).json({ message: 'Quantity must be a number > 0'});
+            };
+            product.quantity = Number(quantity);
+        };
         if (unit) { product.unit = unit};
-        if (pricePerUnit != null) { product.pricePerUnit = Number(pricePerUnit) };
+        if (pricePerUnit !== null && pricePerUnit !== "") {
+            if (Number(pricePerUnit) <= 0) {
+                return res.status(200).json({ message: 'pricePerUnit must be number > 0'});
+            };
+            product.pricePerUnit = Number(pricePerUnit)
+                
+        };
 
         if (minimumOrderQuantity !== null) {
-            let moq = {};
-
+            let moq = {
+                value: 1,
+                unit: product.unit,
+                enabled: false
+            };
+            let checkEnabled;
             if (typeof minimumOrderQuantity !== 'object') {
-                if (isNaN(Number(minimumOrderQuantity) || Number(minimumOrderQuantity) <= 0)) {
+                if (isNaN(Number(minimumOrderQuantity)) || Number(minimumOrderQuantity) <= 0) {
                     return res.status(400).json({ message: 'Minimum order quantity must be a number and greater than 0' });
                 };
+                if (minimumOrderQuantity < 2) {
+                    checkEnabled = false;
+                } else { checkEnabled = true };
                 moq = {
-                    value: minimumOrderQuantity,
-                    unit: unit,
-                    enabled: true
+                    value: Number(minimumOrderQuantity),
+                    unit: product.unit,
+                    enabled: checkEnabled
                 };
                 product.minimumOrderQuantity = moq;
             };
 
             if (typeof minimumOrderQuantity === 'object' && !Array.isArray(minimumOrderQuantity)) {
-                const moqValue = minimumOrderQuantity.value;
+                const moqValue = Number(minimumOrderQuantity.value);
                 if (moqValue == null || isNaN(Number(moqValue))) {
                     return res.status(400).json({ message: 'Minimum order quantity must be a number' });
                 }
@@ -371,10 +414,14 @@ const updateProduct = async(req, res) => {
                     return res.status(400).json({ message: 'Minimum order quantity value must be greater than 0' });
                 };
                 const moqUnit = unit;
-                const moqEnabled = minimumOrderQuantity.enabled;
+                let moqEnabled = minimumOrderQuantity.enabled;
                 if (typeof moqEnabled  !== 'boolean') {
                     return res.status(400).json({ message: 'Minimum order quantity enabled must be a boolean'});
                 };
+
+                if (moqValue < 2) {
+                    moqEnabled = false
+                } else { moqEnabled = true};
 
                 moq = {
                     value: moqValue,
@@ -384,9 +431,14 @@ const updateProduct = async(req, res) => {
                 product.minimumOrderQuantity = moq;
             }
         };
-        
-        if (status) { product.status = status };
-
+    
+        if (status){
+            if (status !== null && !['is_active', 'in_active', 'sold_out'].includes(status) ) {
+                return res.status(400).json({ message: "Product status must either be 'is_active', 'in_active', 'sold_out'" });
+            } else {
+                product.status = status
+            };
+        };
         
         if (files && files.length > 0) {
             let uploads = [];

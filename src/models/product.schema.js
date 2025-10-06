@@ -31,7 +31,7 @@ const productSchema = new mongoose.Schema({
     },
     unit: {
         type: String,
-        default: 'kg'
+        required: true,
     },
     pricePerUnit: {
         type: Number,
@@ -49,6 +49,7 @@ const productSchema = new mongoose.Schema({
     }],
     status: {
         type: String,
+        trim: true,
         enum: ['is_active', 'in_active', 'sold_out'],
         default: 'is_active'
     }
@@ -72,10 +73,10 @@ productSchema.virtual('inStock').get(function () {
     return (this.quantity || 0) > 0;
 });
 
-productSchema.virtual('totalPrice').get(function () {
+/*productSchema.virtual('totalPrice').get(function () {
     return (this.quantity * this.pricePerUnit);
 });
-
+*/
 
 
 const Product = mongoose.model('Product', productSchema);
