@@ -514,7 +514,7 @@ const deleteProduct = async(req, res) => {
             });
         };
         if (req.user.role !== 'admin') {
-            if (!product.farmer.toString() !== farmer.toString()) {
+            if (product.farmer.toString() !== farmer.toString()) {
                 return res
                 .status(403)
                 .json({
