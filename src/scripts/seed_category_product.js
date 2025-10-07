@@ -86,7 +86,7 @@ async function uploadLocalImageIfAny(categorySlug, filename) {
 
 (async function seed() {
   console.log('Connecting to DB...', MONGO_URL);
-  await mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+  await mongoose.connect(MONGO_URL);
 
   try {
     // create farmer users
