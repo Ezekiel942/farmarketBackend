@@ -1,6 +1,9 @@
 const mongoose = require('mongoose');
 const User = require("../models/user.schema");
-
+const { uploadSingleFile } = require('../utils/uploadCloudinary');
+const { deleteSingleFile } = require('../utils/deleteCloudinary');
+const path = require('path');
+const { v4: uuid4} = require('uuid');
 
 
 exports.getMe = async(req, res) => {
@@ -122,6 +125,74 @@ exports.updateUser = async (req, res) => {
     return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
+
+
+
+ exports.updateProfileImage = async(req, res) => {
+  try {
+    if (!req.user) {
+      return res
+      .status(401)
+      .json({ message: 'Not authenticated'});
+    };
+    const authUserId = req.user._id;
+    const file = req.file;
+
+    if (!file) {
+      return res
+      .status(400)
+      .json({ message: 'No image file uploaded'});
+    };
+
+    const allowedFiletype = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedFiletype.includes(file.mimetype)) {
+      return res
+      .status(400)
+      .json({ message: 'Unsupported image type. Allowed: JPG, PNG and WEBP'});
+    }
+
+    const folder = process.env.CLOUDINARY_FOLDER;
+    const user = await User.findById(authUserId).select('-password');
+    if(!user) {
+      return res.status(404).json({ message: 'User not found'});
+    };
+
+    if (user.profileImage && user.profileImage.publicId) {
+      try {
+        await deleteSingleFile(user.profileImage.publicId);
+
+      } catch (err) {
+        console.error(err);
+        return res.status(500).json({ message: 'Failed to remove old photo. Try again later' })
+      };
+    };
+
+    const originalName = file.originalname;
+    const { name: fileName, ext } = path.parse(originalName);
+    const publicId = `${fileName}-${uuid4().slice(0, 8)}`;
+
+    const uploadResult = await uploadSingleFile(file.buffer, publicId, folder, file.mimetype);
+    user.profileImage = {
+      url: uploadResult.secure_url,
+      publicId: uploadResult.public_id
+    };
+
+    await user.save();
+    return res
+    .status(200)
+    .json({
+      message: 'Profile image updated successfully',
+      user
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res
+    .status(500)
+    .json({ message: 'Internal Server Error'})
+  }
+ };
+
 
 
 // Delete user

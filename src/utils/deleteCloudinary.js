@@ -18,4 +18,16 @@ const deleteFile = async (publicIds) => {
 };
 
 
-module.exports = deleteFile;
+const deleteSingleFile = async(publicId, resource_type = 'image') => {
+    return new Promise((resolve, reject) => {
+        cloudinary.uploader.destroy(publicId, { resource_type }, (error, result) => {
+            if (error) {
+                return reject(error);
+            }
+            return resolve(result);
+        })
+    })
+};
+
+
+module.exports = { deleteFile, deleteSingleFile };
