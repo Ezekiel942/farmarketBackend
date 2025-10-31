@@ -1,45 +1,39 @@
 // src/index.js
+const dotenv = require('dotenv');
+const connectDB = require('./config/db');
+const app = require('./app'); // import the app (express instance)
 
-import express from "express";
-import dotenv from "dotenv";
-import mongoose from "mongoose";
-import cors from "cors";
-import helmet from "helmet";
-
-// Load environment variables
+// Load env vars
 dotenv.config();
 
-// Create Express app
-const app = express();
+// Connect to DB then start server
+(async () => {
+  await connectDB();
 
-// Middleware
-app.use(cors());
-app.use(helmet());
-app.use(express.json());
+  const PORT = process.env.PORT || 5000;
+  const server = app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
 
-app.get("/", (req, res) => {
-  res.send("API is running...");
-});
-
-// MongoDB connection
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+  // Graceful shutdown handlers
+  const shutdown = async (signal) => {
+    console.log(`Received ${signal}. Closing server...`);
+    server.close(async (err) => {
+      if (err) {
+        console.error('Error closing server:', err);
+        process.exit(1);
+      }
+      try {
+        const mongoose = require('mongoose');
+        await mongoose.connection.close(false);
+        console.log('MongoDB connection closed.');
+      } catch (e) {
+        // ignore
+      }
+      process.exit(0);
     });
-    console.log("MongoDB database is connected");
-  } catch (error) {
-    console.error("MongoDB connection failed:", error.message);
-    process.exit(1); // Exit app if DB fails to connect
-  }
-};
+  };
 
-connectDB();
-
-// Dynamic port (Render assigns PORT automatically)
-const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+})();

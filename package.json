@@ -2,7 +2,7 @@
   "name": "farmarketbackend",
   "version": "1.0.0",
   "description": "",
-  "main": "app.js",
+  "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
@@ -22,11 +22,9 @@
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
-    "mongodb-memory-server": "^10.2.2",
     "mongoose": "^8.8.1",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "nodemon": "^3.1.10",
     "slugify": "^1.6.6",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
@@ -38,5 +36,9 @@
     "mongodb-memory-server": "^10.2.1",
     "nodemon": "^3.1.9",
     "supertest": "^7.0.0"
+  }
+  ,
+  "engines": {
+    "node": ">=18"
   }
 }

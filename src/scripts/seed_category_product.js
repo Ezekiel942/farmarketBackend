@@ -22,7 +22,7 @@ const Category = require('../models/category.schema');
 const Product = require('../models/product.schema');
 const User = require('../models/user.schema');
 
-const MONGO_URL = process.env.MONGO_URL;
+const MONGO_URL = process.env.MONGO_URI || process.env.MONGO_URL;
 
 // 20 Africa-relevant categories and 3+ realistic African farm or agro products per category
 const CATEGORIES_AND_PRODUCTS = {
