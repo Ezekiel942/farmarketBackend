@@ -1,85 +1,67 @@
-# Farmarket API
+# FarMarket Backend API
 
-Farmarket is a backend application designed to simplify agricultural product trading by connecting farmers, vendors, and buyers. It enables secure authentication, efficient product management, and structured category organization — all powered by Node.js and Express.
+A RESTful API for an agricultural marketplace connecting farmers and buyers. Built with Node.js, Express, and MongoDB.
 
-The goal is to provide a reliable foundation for a full-stack marketplace that promotes local agribusiness and digital inclusion across Africa.
+## Features
 
----
+- 🔐 Authentication & Authorization (JWT)
+- 👨‍🌾 User roles (buyer, farmer, admin)
+- 📦 Product management with images
+- 🗂️ Category organization
+- 🖼️ Image upload (Cloudinary)
+- 📄 API documentation (Swagger)
 
 ## Tech Stack
 
-- **Runtime:** Node.js  
-- **Framework:** Express.js  
-- **Database:** MongoDB (Mongoose ODM)  
-- **Authentication:** JWT  
-- **Image Storage:** Cloudinary  
-- **Testing:** Jest + Supertest  
-- **CI/CD:** GitHub Actions
-- **Deployment:** Railway
-- **API documentation:** Postman
+- **Runtime:** Node.js >= 18
+- **Framework:** Express.js
+- **Database:** MongoDB with Mongoose
+- **Authentication:** JWT
+- **Image Storage:** Cloudinary
+- **Testing:** Jest + Supertest
+- **Deployment:** Render
+- **Documentation:** Swagger/OpenAPI
 
 ---
 
-## Key Features
+## Installation
 
-- User registration and login with JWT authentication  
-- Secure password hashing using bcrypt  
-- CRUD operations for **categories** and **products**  
-- Cloudinary integration for product image uploads  
-- Input validation and structured error handling  
-- Centralized environment configuration  
-- Modular folder structure for scalability
+```bash
+# Clone the repository
+git clone https://github.com/Ezekiel942/farmarketBackend.git
 
----
+# Install dependencies
+cd farmarketBackend
+npm install
 
-## Folder Structure
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your values
 
+# Start the server
+npm start
+
+# For development with auto-reload
+npm run dev
 ```
-farmflow-backend/
-│
-├── src/
-│   ├── config/
-│   │   └── db.js
-│   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── category.controller.js
-│   │   └── product.controller.js
-│   ├── middleware/
-│   │   ├── auth.js
-│   │   └── multer.js
-│   ├── models/
-│   │   ├── category.schema.js
-│   │   ├── product.schema.js
-│   │   └── user.schema.js
-│   ├── routes/
-│   │   ├── auth.routes.js
-│   │   ├── category.routes.js
-│   │   └── product.routes.js
-│   ├── utils/
-│   │   └── uploadCloudinary.js
-|   |   └── deleteCloudinary.js
-│   ├── tests/
-│   │   ├── auth.test.js
-│   │   ├── category.test.js
-│   │   └── product.test.js
-│   ├── app.js
-│   └── index.js
-│
-├── .env.example
-├── package.json
-└── README.md
-```
-
----
 
 ## Environment Variables
-```bash
-Create a `.env` file in the root directory and include the following:
-cp .env.sample .env
 
+Create a `.env` file in the root directory:
+
+```env
+# Server
 PORT=5000
+NODE_ENV=development
+
+# MongoDB
 MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+
+# Authentication
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES=1h
+
+# Cloudinary
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
@@ -87,32 +69,66 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ---
 
-## Installation & Setup
+## API Documentation
 
-```bash
-# 1. Clone the repository
-git clone https://github.com/ugberaeseac/farmarketBackend.git
+### Authentication Endpoints
 
-# 2. Navigate to the project folder
-cd farmarketBackend
+#### Register New User
 
-# 3. Install dependencies
-npm install
+```http
+POST /api/auth/signup
+Content-Type: application/json
 
-# 4. Create and configure .env file (see above)
-
-# 5. Start the development server
-npm run dev
-
-# 6. Run tests
-npm test
+{
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john@example.com",
+    "password": "password123",
+    "confirmPassword": "password123"
+}
 ```
 
----
+Response (201 Created):
+```json
+{
+    "message": "User successfully created",
+    "token": "eyJhbGciOiJIUzI1...",
+    "user": {
+        "_id": "5f7d3e...",
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "john@example.com",
+        "role": "buyer"
+    }
+}
+```
 
-## 📡 API Documentation
+#### User Login
 
-### ** Auth Routes**
+```http
+POST /api/auth/login
+Content-Type: application/json
+
+{
+    "email": "john@example.com",
+    "password": "password123"
+}
+```
+
+Response (200 OK):
+```json
+{
+    "message": "Login successful",
+    "token": "eyJhbGciOiJIUzI1...",
+    "user": {
+        "_id": "5f7d3e...",
+        "firstName": "John",
+        "lastName": "Doe",
+        "email": "john@example.com",
+        "role": "buyer"
+    }
+}
+```
 
 #### Register User  
 **POST** `/api/auth/signup`
@@ -162,104 +178,215 @@ npm test
 
 ---
 
-### ** Category Routes**
+### Product Management
 
-#### Create Category  
-**POST** `/api/categories`
+#### Create Product
 
-**Request:**
-```json
-{ "name": "Fruits" }
-```
+```http
+POST /api/products
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: multipart/form-data
 
-**Response:**
-```json
 {
-  "_id": "672b1a4...",
-  "name": "Fruits",
-  "slug": "fruits",
-  "createdAt": "2025-10-10T12:34:56Z"
+    "name": "Fresh Tomatoes",
+    "description": "Organic farm-fresh tomatoes",
+    "category": "category_id",
+    "quantity": 100,
+    "unit": "kg",
+    "pricePerUnit": 2.5,
+    "minimumOrderQuantity": {
+        "value": 10,
+        "unit": "kg",
+        "enabled": true
+    },
+    "images": [files]
 }
 ```
 
-#### Get All Categories  
-**GET** `/api/categories`
-
----
-
-### ** Product Routes**
-
-#### Create Product  
-**POST** `/api/products`  
-> Requires authentication (Bearer Token)
-
-**Request:**
+Response (201 Created):
 ```json
 {
-  "name": "Organic Tomatoes",
-  "description": "Freshly picked tomatoes from local farms",
-  "unit": "kg",
-  "quantity": 50,
-  "pricePerUnit": 300,
-  "minimumOrderQuantity": 10,
-  "status": "is_active",
-  "category": "672b1a4...",
-  "image": "image_upload_link"
+    "message": "Product created successfully",
+    "data": {
+        "_id": "5f7d3e...",
+        "name": "Fresh Tomatoes",
+        "description": "Organic farm-fresh tomatoes",
+        "slug": "fresh-tomatoes",
+        "category": "5f7d3e...",
+        "farmer": "5f7d3e...",
+        "quantity": 100,
+        "unit": "kg",
+        "pricePerUnit": 2.5,
+        "images": [
+            {
+                "url": "https://res.cloudinary.com/...",
+                "publicId": "farmarket/..."
+            }
+        ],
+        "status": "is_active"
+    }
 }
 ```
 
-**Response:**
+#### List All Products
+
+```http
+GET /api/products
+```
+
+Response (200 OK):
 ```json
 {
-  "_id": "672b2f9...",
-  "name": "Organic Tomatoes",
-  "description": "Freshly picked tomatoes from local farms",
-  "unit": "kg",
-  "quantity": 50,
-  "pricePerUnit": 300,
-  "minimumOrderQuantity": 10,
-  "status": "is_active",
-  "category": "672b1a4...",
-  "image": "https://res.cloudinary.com/.../tomatoes.jpg"
+    "message": "Products retrieved successfully",
+    "data": [
+        {
+            "_id": "5f7d3e...",
+            "name": "Fresh Tomatoes",
+            "description": "Organic farm-fresh tomatoes",
+            "slug": "fresh-tomatoes",
+            "category": {
+                "_id": "5f7d3e...",
+                "name": "Vegetables"
+            },
+            "farmer": {
+                "_id": "5f7d3e...",
+                "firstName": "John",
+                "lastName": "Doe"
+            },
+            "quantity": 100,
+            "unit": "kg",
+            "pricePerUnit": 2.5,
+            "images": [
+                {
+                    "url": "https://res.cloudinary.com/...",
+                    "publicId": "farmarket/..."
+                }
+            ],
+            "status": "is_active"
+        }
+    ]
 }
 ```
 
-#### Get Products by Category  
-**GET** `/api/categories/:id/products`
+### Category Management
 
----
+#### Create Category (Admin Only)
+
+```http
+POST /api/categories
+Authorization: Bearer YOUR_JWT_TOKEN
+Content-Type: application/json
+
+{
+    "name": "Vegetables"
+}
+```
+
+Response (201 Created):
+```json
+{
+    "message": "Category created successfully",
+    "data": {
+        "_id": "5f7d3e...",
+        "name": "Vegetables",
+        "slug": "vegetables"
+    }
+}
+```
+
+#### List Categories
+
+```http
+GET /api/categories
+```
+
+Response (200 OK):
+```json
+{
+    "message": "Categories retrieved successfully",
+    "data": [
+        {
+            "_id": "5f7d3e...",
+            "name": "Vegetables",
+            "slug": "vegetables"
+        }
+    ]
+}
+```
+
+## Response Formats
+
+### Success Response
+```json
+{
+    "message": "Operation successful",
+    "data": {
+        // Response data
+    }
+}
+```
+
+### Error Response
+```json
+{
+    "message": "Error description"
+}
+```
 
 ## Testing
 
-Farmarket includes automated tests powered by **Jest** and **Supertest**.
-
 ```bash
-# Run all tests
+# Run tests
 npm test
+
+# Run tests in watch mode
+npm run test:watch
 ```
 
-Each test covers core functionalities:
-- Authentication flow (register/login)  
-- Category CRUD  
-- Product creation and retrieval  
+## Deployment
 
----
+### Render Deployment Steps
 
-## Future Improvements
+1. Create a new Web Service on Render
+2. Connect your GitHub repository
+3. Configure the service:
+   - Build Command: `npm install`
+   - Start Command: `npm start`
+4. Add environment variables in Render dashboard
+5. Deploy!
 
-- Add password reset functionality  
-- Implement pagination and product search  
-- Introduce admin dashboard for vendor management  
-- Add payment integration (Flutterwave/Paystack)
+### Required Environment Variables on Render
 
----
+- `NODE_ENV=production`
+- `PORT=10000` (Render will override this)
+- `MONGO_URI=your_production_mongodb_uri`
+- `JWT_SECRET=your_production_jwt_secret`
+- `CLOUDINARY_CLOUD_NAME=your_cloud_name`
+- `CLOUDINARY_API_KEY=your_api_key`
+- `CLOUDINARY_API_SECRET=your_api_secret`
 
-## Resources
+## API Status Codes
 
-- 🌐 **Live App:** [FarmFlow (Mobile)](https://farm-flow-tawny.vercel.app/)  
-- 💻 **Backend Repo:** [GitHub Repository](https://github.com/ugberaeseac/farmarketBackend.git)  
-- 🧠 **Figma Design:** [View Design](https://www.figma.com/design/2NaSN8pjmf81m3o9FV2AMd/Farm-Flow?node-id=13-72&t=xMZmArayZqEsj4xW-1)  
-- 📮 **Postman Docs:** [API Collection](https://documenter.getpostman.com/view/45172601/2sB3QJNAWg#0c27c894-f676-41e6-a7b2-39a799a4040a)  
-- ⚙️ **Backend API:** [API Base URL](https://farmarket.up.railway.app/api/)
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 409: Conflict
+- 500: Server Error
+
+## Security Features
+
+- Password hashing (bcrypt)
+- JWT authentication
+- Role-based access control
+- Request validation
+- Secure headers (helmet)
+- CORS protection
+
+## License
+
+This project is licensed under the ISC License.
 
 ---

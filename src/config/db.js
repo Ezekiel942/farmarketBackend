@@ -12,9 +12,9 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log('✅ MongoDB database is connected');
+    console.log('MongoDB database is connected');
   } catch (error) {
-    console.error('❌ Error connecting to MongoDB:', error.message);
+    console.error('Error connecting to MongoDB:', error.message);
 
     // Don't exit immediately in dev, let nodemon log
     if (process.env.NODE_ENV === 'production') {
